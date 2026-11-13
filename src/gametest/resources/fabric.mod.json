@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "minecod-gametest",
+	"version": "1.0.0",
+	"name": "Minecod game tests",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-gametest": ["io.github.meyervlad.minecod.gametest.MinecodGameTests"],
+		"fabric-client-gametest": ["io.github.meyervlad.minecod.gametest.MinecodClientGameTest"]
+	},
+	"depends": {
+		"minecod": "*",
+		"fabric-gametest-api-v1": "*"
+	}
+}

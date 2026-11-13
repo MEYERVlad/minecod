@@ -1,0 +1,15 @@
+{
+	"gamerule.minecod.hand_mining": "Break blocks by hand",
+	"gamerule.minecod.hand_mining.description": "When off, blocks can only be broken from code: /run mine()",
+	"minecod.run.busy": "A script is already running. Stop it with /halt",
+	"minecod.run.hung": "The script stopped responding and was terminated. Your variables were reset.",
+	"minecod.halt.done": "Script stopped",
+	"minecod.halt.idle": "No script is running",
+	"minecod.help.title": "Functions:",
+	"minecod.help.print": "write to chat",
+	"minecod.help.sleep": "wait",
+	"minecod.help.pos": "your block coordinates",
+	"minecod.help.inspect": "the block you are looking at, or nil",
+	"minecod.help.mine": "break the block you are looking at",
+	"minecod.help.help": "this list"
+}

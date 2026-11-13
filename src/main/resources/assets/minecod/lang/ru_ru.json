@@ -1,0 +1,15 @@
+{
+	"gamerule.minecod.hand_mining": "Ломать блоки руками",
+	"gamerule.minecod.hand_mining.description": "Если выключено, блоки ломаются только из кода: /run mine()",
+	"minecod.run.busy": "Скрипт уже выполняется. Остановить: /halt",
+	"minecod.run.hung": "Скрипт перестал отвечать и был остановлен. Переменные сброшены.",
+	"minecod.halt.done": "Скрипт остановлен",
+	"minecod.halt.idle": "Сейчас ничего не выполняется",
+	"minecod.help.title": "Функции:",
+	"minecod.help.print": "написать в чат",
+	"minecod.help.sleep": "подождать",
+	"minecod.help.pos": "твои координаты (в блоках)",
+	"minecod.help.inspect": "блок, на который ты смотришь, или nil",
+	"minecod.help.mine": "сломать блок, на который ты смотришь",
+	"minecod.help.help": "этот список"
+}

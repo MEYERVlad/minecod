@@ -1,0 +1,19 @@
+{
+	"schemaVersion": 1,
+	"id": "minecod",
+	"version": "${version}",
+	"name": "Minecod",
+	"description": "Survive by writing code: your hands can't break blocks, your Lua scripts can.",
+	"authors": ["MEYERVlad"],
+	"license": "All-Rights-Reserved",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["io.github.meyervlad.minecod.Minecod"]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
