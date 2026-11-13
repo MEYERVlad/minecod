@@ -1,10 +1,13 @@
 package io.github.meyervlad.minecod.terminal;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 
 import io.github.meyervlad.minecod.script.LuaSandbox;
 import io.github.meyervlad.minecod.script.Script;
+import io.github.meyervlad.minecod.wire.WireBlock;
+import io.github.meyervlad.minecod.wire.WireNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -19,7 +22,7 @@ import org.luaj.vm2.LuaValue;
 
 /**
  * The state of one terminal: its program, whether that program should be running, the
- * redstone power it emits and the lines it has printed. Server thread only.
+ * signal it emits and the lines it has printed. Server thread only.
  *
  * <p>A running program cannot be saved, so after the world is reloaded a terminal that was
  * running starts its program again from the first line.
@@ -34,12 +37,14 @@ public final class TerminalBlockEntity extends BlockEntity {
 	/** Marks a log line as the values a program returned. */
 	public static final String RESULT_PREFIX = "= ";
 
-	private static final int MAX_POWER = 15;
-
 	// Saved with the world.
 	private String program = "";
 	private boolean enabled;
-	private int power;
+	private double output;
+
+	/** {@link #wireSignal()} walks the wires, so its answer is kept for the rest of the tick. */
+	private double cachedWireSignal;
+	private int cachedWireSignalTick = -1;
 
 	private final ArrayDeque<String> log = new ArrayDeque<>();
 	private Script script;
@@ -68,16 +73,16 @@ public final class TerminalBlockEntity extends BlockEntity {
 	public void run() {
 		halt();
 		log.clear();
-		setPower(0);
+		setOutput(0);
 		enabled = true;
 		setChanged();
 		start();
 	}
 
-	/** Stops the program and switches the redstone output off. */
+	/** Stops the program and switches its signal off. */
 	public void stop() {
 		halt();
-		setPower(0);
+		setOutput(0);
 		setStatus(TerminalStatus.IDLE);
 
 		if (enabled) {
@@ -213,34 +218,77 @@ public final class TerminalBlockEntity extends BlockEntity {
 		return worldPosition.relative(facing());
 	}
 
-	/** The redstone power coming out of the back, 0 to 15. */
-	public int power() {
-		return power;
+	/** The signal the program emits: onto its wires as it is, and out of the back as redstone. */
+	public double output() {
+		return output;
 	}
 
-	void setPower(int power) {
-		int clamped = Math.clamp(power, 0, MAX_POWER);
+	/** The redstone power coming out of the back, 0 to 15. */
+	public int power() {
+		return WireNetwork.redstonePower(output);
+	}
 
-		if (clamped == this.power) {
+	void setOutput(double value) {
+		double signal = Double.isNaN(value) ? 0 : value;
+
+		if (signal == output) {
 			return;
 		}
 
-		this.power = clamped;
+		int oldPower = power();
+		output = signal;
 		setChanged();
 
-		if (level != null && !isRemoved()) {
+		if (level == null || isRemoved()) {
+			return;
+		}
+
+		if (power() != oldPower) {
 			level.updateNeighborsAt(worldPosition, getBlockState().getBlock(), null);
 		}
+
+		WireNetwork.update(serverLevel(), adjacentWirePositions());
 	}
 
-	/** The strongest redstone signal reaching the terminal from any side but its back. */
-	int input() {
+	/** Where wires plugged into this terminal would be: next to every side but the screen. */
+	public List<BlockPos> adjacentWirePositions() {
+		List<BlockPos> positions = new ArrayList<>();
+		BlockState state = getBlockState();
+
+		for (Direction side : Direction.values()) {
+			if (TerminalBlock.acceptsWire(state, side)) {
+				positions.add(worldPosition.relative(side));
+			}
+		}
+
+		return positions;
+	}
+
+	/** The strongest signal other terminals put on this terminal's wires, or 0 without any. */
+	double wireSignal() {
+		int tick = serverLevel().getServer().getTickCount();
+
+		if (tick != cachedWireSignalTick) {
+			cachedWireSignal = WireNetwork.strongestOtherSignal(serverLevel(), this);
+			cachedWireSignalTick = tick;
+		}
+
+		return cachedWireSignal;
+	}
+
+	/**
+	 * The strongest redstone signal reaching the terminal from any side but its back. Wires
+	 * do not count: they are read with {@link #wireSignal()}, exactly and without an echo.
+	 */
+	int redstoneInput() {
 		Direction back = facing().getOpposite();
 		int strongest = 0;
 
 		for (Direction side : Direction.values()) {
-			if (side != back) {
-				strongest = Math.max(strongest, level.getSignal(worldPosition.relative(side), side));
+			BlockPos neighbor = worldPosition.relative(side);
+
+			if (side != back && !(level.getBlockState(neighbor).getBlock() instanceof WireBlock)) {
+				strongest = Math.max(strongest, level.getSignal(neighbor, side));
 			}
 		}
 
@@ -254,7 +302,7 @@ public final class TerminalBlockEntity extends BlockEntity {
 		super.saveAdditional(output);
 		output.putString("program", program);
 		output.putBoolean("enabled", enabled);
-		output.putInt("power", power);
+		output.putDouble("output", this.output);
 	}
 
 	@Override
@@ -262,6 +310,7 @@ public final class TerminalBlockEntity extends BlockEntity {
 		super.loadAdditional(input);
 		program = input.getStringOr("program", "");
 		enabled = input.getBooleanOr("enabled", false);
-		power = Math.clamp(input.getIntOr("power", 0), 0, MAX_POWER);
+		// "power" is what worlds saved before wires existed call it.
+		output = input.getDoubleOr("output", input.getIntOr("power", 0));
 	}
 }

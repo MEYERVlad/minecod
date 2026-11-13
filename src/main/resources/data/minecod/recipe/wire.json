@@ -1,0 +1,14 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "redstone",
+	"key": {
+		"R": "minecraft:redstone"
+	},
+	"pattern": [
+		"RRR"
+	],
+	"result": {
+		"count": 6,
+		"id": "minecod:wire"
+	}
+}

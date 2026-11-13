@@ -13,6 +13,7 @@
 	"minecod.help.mine": "break the block you are looking at",
 	"minecod.help.help": "this list",
 	"block.minecod.terminal": "Terminal",
+	"block.minecod.wire": "Wire",
 	"minecod.terminal.program": "Program",
 	"minecod.terminal.placeholder": "Lua program. Try: while true do mine() sleep(1) end",
 	"minecod.terminal.output": "Output",

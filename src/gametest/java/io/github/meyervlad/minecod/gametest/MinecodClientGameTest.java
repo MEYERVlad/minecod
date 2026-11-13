@@ -7,6 +7,7 @@ import io.github.meyervlad.minecod.client.TerminalScreen;
 import io.github.meyervlad.minecod.terminal.TerminalBlock;
 import io.github.meyervlad.minecod.terminal.TerminalBlockEntity;
 import io.github.meyervlad.minecod.terminal.TerminalStatus;
+import io.github.meyervlad.minecod.wire.WireBlock;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
@@ -15,6 +16,8 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.level.block.RedstoneLampBlock;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 /**
  * Plays the mod the way a person would: a real client, a real singleplayer world, keyboard
@@ -65,6 +68,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 			context.takeScreenshot("3-chat-output");
 
 			testTerminal(context, world);
+			testWires(context, world);
 
 			// With the rule switched off, hands work again.
 			server.runCommand("tp @a 0.5 100 0.5 0 0");
@@ -135,6 +139,50 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
 		context.waitForScreen(null);
 		check(terminal(server).program().equals(program), "the program changed after reopening: " + terminal(server).program());
+		server.runCommand("setblock " + coordinates(TERMINAL) + " minecraft:air");
+	}
+
+	/** Places a wire by hand, then wires a terminal to a lamp and watches the signal arrive. */
+	private static void testWires(ClientGameTestContext context, TestSingleplayerContext world) {
+		TestServerContext server = world.getServer();
+
+		// By hand: the new wire should reach for the one already there.
+		BlockPos placed = TERMINAL;
+		BlockPos existing = TERMINAL.south();
+		server.runCommand("setblock " + coordinates(existing) + " minecod:wire");
+		server.runCommand("item replace entity @a weapon.mainhand with minecod:wire 16");
+		server.runCommand("tp @a 0.5 100 0.5 0 39");
+		context.waitTicks(10);
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+		server.waitFor(s -> s.overworld().getBlockState(placed).getBlock() instanceof WireBlock);
+		check(server.computeOnServer(s -> s.overworld().getBlockState(placed).getValue(BlockStateProperties.SOUTH)), "the placed wire does not reach for its neighbour");
+		check(server.computeOnServer(s -> s.overworld().getBlockState(existing).getValue(BlockStateProperties.NORTH)), "the neighbour does not reach for the placed wire");
+		server.runCommand("setblock " + coordinates(existing) + " minecraft:air");
+
+		// A terminal, a run of wire up and over, and a lamp at the end of it.
+		BlockPos lamp = TERMINAL.above(2);
+		List<BlockPos> wires = List.of(TERMINAL.east(), TERMINAL.east(2), TERMINAL.east(2).above(), TERMINAL.east(2).above(2), TERMINAL.east().above(2));
+		server.runCommand("setblock " + coordinates(TERMINAL) + " minecod:terminal[facing=north]");
+		wires.forEach(wire -> server.runCommand("setblock " + coordinates(wire) + " minecod:wire"));
+		server.runCommand("setblock " + coordinates(lamp) + " minecraft:redstone_lamp");
+		server.runCommand("tp @a 1.5 100 -2.5 0 0");
+		context.waitTicks(10);
+		context.takeScreenshot("7-wires-off");
+
+		server.runOnServer(s -> {
+			terminal(s).setProgram("emit(15)");
+			terminal(s).run();
+		});
+		server.waitFor(s -> s.overworld().getBlockState(lamp).getValue(RedstoneLampBlock.LIT));
+		world.getConnection().waitForClientboundPackets();
+		context.waitTicks(5);
+		check(context.computeOnClient(client -> client.level.getBlockState(wires.get(2)).getValue(WireBlock.POWER)) == 15, "the client does not see the wire as live");
+		check(context.computeOnClient(client -> client.level.getBlockState(lamp).getValue(RedstoneLampBlock.LIT)), "the client does not see the lamp lit");
+		context.takeScreenshot("8-wires-on");
+
+		server.runOnServer(s -> terminal(s).stop());
+		wires.forEach(wire -> server.runCommand("setblock " + coordinates(wire) + " minecraft:air"));
+		server.runCommand("setblock " + coordinates(lamp) + " minecraft:air");
 		server.runCommand("setblock " + coordinates(TERMINAL) + " minecraft:air");
 	}
 

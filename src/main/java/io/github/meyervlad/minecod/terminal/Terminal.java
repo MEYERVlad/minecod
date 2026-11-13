@@ -3,6 +3,7 @@ package io.github.meyervlad.minecod.terminal;
 import java.util.Set;
 
 import io.github.meyervlad.minecod.Minecod;
+import io.github.meyervlad.minecod.wire.Wire;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -45,7 +46,10 @@ public final class Terminal {
 
 	/** Loading this class registers the block; this adds everything around it. */
 	public static void init() {
-		CreativeModeTabEvents.modifyOutputEvent(REDSTONE_TAB).register(output -> output.accept(ITEM));
+		CreativeModeTabEvents.modifyOutputEvent(REDSTONE_TAB).register(output -> {
+			output.accept(ITEM);
+			output.accept(Wire.ITEM);
+		});
 
 		PayloadTypeRegistry.clientboundPlay().register(TerminalStatePayload.TYPE, TerminalStatePayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(TerminalActionPayload.TYPE, TerminalActionPayload.CODEC);

@@ -9,7 +9,7 @@ import org.luaj.vm2.Varargs;
 
 /**
  * The Lua functions available to a terminal's program. They act through the block: it mines
- * and inspects what is in front of its screen, and talks to redstone.
+ * and inspects what is in front of its screen, and talks to wires and redstone.
  */
 final class TerminalApi extends LuaApi {
 	private static final int FULL_POWER = 15;
@@ -27,8 +27,9 @@ final class TerminalApi extends LuaApi {
 		api.add(globals, "pos() -> x, y, z", api::pos);
 		api.add(globals, "inspect() -> id", api::inspect);
 		api.add(globals, "mine() -> true, id | false, reason", api::mine);
+		api.add(globals, "emit(number)", api::emit);
+		api.add(globals, "signal() -> number", api::signal);
 		api.add(globals, "redstone() -> 0..15", api::redstone);
-		api.add(globals, "emit(0..15)", api::emit);
 		api.add(globals, "help()", api::help);
 	}
 
@@ -56,18 +57,27 @@ final class TerminalApi extends LuaApi {
 		return Script.await(new TerminalMineTask(terminal));
 	}
 
-	private Varargs redstone(Varargs args) {
-		return Script.await(() -> LuaValue.valueOf(terminal.input()));
-	}
-
-	/** Accepts a power level or, for convenience, true and false. */
+	/** Accepts any number or, for convenience, true and false for full redstone power and none. */
 	private Varargs emit(Varargs args) {
 		LuaValue value = args.arg1();
-		int power = value.isboolean() ? (value.toboolean() ? FULL_POWER : 0) : args.checkint(1);
+		double signal = value.isboolean() ? (value.toboolean() ? FULL_POWER : 0) : args.checkdouble(1);
 		return Script.await(() -> {
-			terminal.setPower(power);
+			terminal.setOutput(signal);
 			return LuaValue.NONE;
 		});
+	}
+
+	/** What other terminals emit onto this terminal's wires. */
+	private Varargs signal(Varargs args) {
+		return Script.await(() -> LuaValue.valueOf(terminal.wireSignal()));
+	}
+
+	/**
+	 * Redstone is the slow way to talk: reading it takes the rest of the tick, where reading
+	 * a wire costs next to nothing.
+	 */
+	private Varargs redstone(Varargs args) {
+		return Script.await(() -> LuaValue.valueOf(terminal.redstoneInput()), Script.INSTRUCTIONS_PER_TICK);
 	}
 
 	private Varargs help(Varargs args) {

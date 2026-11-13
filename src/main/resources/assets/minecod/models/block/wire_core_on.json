@@ -1,0 +1,7 @@
+{
+	"parent": "minecod:block/wire_core",
+	"textures": {
+		"wire": "minecod:block/wire_on",
+		"particle": "minecod:block/wire_on"
+	}
+}

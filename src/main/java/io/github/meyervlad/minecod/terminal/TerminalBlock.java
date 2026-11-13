@@ -1,5 +1,9 @@
 package io.github.meyervlad.minecod.terminal;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import io.github.meyervlad.minecod.wire.WireNetwork;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -26,9 +30,9 @@ import net.minecraft.world.phys.BlockHitResult;
 /**
  * A block that stores a Lua program and runs it on its own.
  *
- * <p>Its screen side is the front: that is where it mines. Redstone goes in through every
- * side except the back and comes out of the back only, so a terminal never reads its own
- * output. The logic lives in {@link TerminalBlockEntity}.
+ * <p>Its screen side is the front: that is where it mines. Wires plug into every other side.
+ * Redstone goes in through every side except the back and comes out of the back only, so a
+ * terminal never reads its own output. The logic lives in {@link TerminalBlockEntity}.
  */
 public final class TerminalBlock extends BaseEntityBlock {
 	public static final EnumProperty<Direction> FACING = BlockStateProperties.FACING;
@@ -86,10 +90,27 @@ public final class TerminalBlock extends BaseEntityBlock {
 		return askedFromBehind && level.getBlockEntity(pos) instanceof TerminalBlockEntity terminal ? terminal.power() : 0;
 	}
 
+	/**
+	 * Whether a wire may plug into the given side of a terminal: any side but the screen,
+	 * which has to stay clear for mining.
+	 */
+	public static boolean acceptsWire(BlockState terminal, Direction side) {
+		return side != terminal.getValue(FACING);
+	}
+
 	@Override
 	protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
-		// Whatever the terminal was powering has to notice that it is gone.
+		// Whatever the terminal was powering has to notice that it is gone: redstone devices...
 		level.updateNeighborsAt(pos, this, null);
+
+		// ...and the wires that carried its signal.
+		List<BlockPos> neighbors = new ArrayList<>();
+
+		for (Direction direction : Direction.values()) {
+			neighbors.add(pos.relative(direction));
+		}
+
+		WireNetwork.update(level, neighbors);
 	}
 
 	@Override

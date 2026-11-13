@@ -35,13 +35,17 @@ public class TerminalGameTests {
 	private static final BlockPos SIDE = TERMINAL.east();
 
 	private static TerminalBlockEntity place(GameTestHelper helper, BlockPos pos, String program) {
-		helper.setBlock(pos, Terminal.BLOCK.defaultBlockState().setValue(TerminalBlock.FACING, Direction.SOUTH));
+		return place(helper, pos, Direction.SOUTH, program);
+	}
+
+	static TerminalBlockEntity place(GameTestHelper helper, BlockPos pos, Direction facing, String program) {
+		helper.setBlock(pos, Terminal.BLOCK.defaultBlockState().setValue(TerminalBlock.FACING, facing));
 		TerminalBlockEntity terminal = helper.getBlockEntity(pos, TerminalBlockEntity.class);
 		terminal.setProgram(program);
 		return terminal;
 	}
 
-	private static void expectLog(GameTestHelper helper, TerminalBlockEntity terminal, List<String> expected) {
+	static void expectLog(GameTestHelper helper, TerminalBlockEntity terminal, List<String> expected) {
 		helper.assertTrue(terminal.logLines().equals(expected), "terminal printed " + terminal.logLines() + ", expected " + expected);
 	}
 
@@ -49,7 +53,7 @@ public class TerminalGameTests {
 		helper.assertTrue(terminal.status() == expected, "terminal is " + terminal.status() + ", expected " + expected);
 	}
 
-	private static boolean lit(GameTestHelper helper, BlockPos lamp) {
+	static boolean lit(GameTestHelper helper, BlockPos lamp) {
 		return helper.getBlockState(lamp).getValue(RedstoneLampBlock.LIT);
 	}
 
@@ -243,7 +247,7 @@ public class TerminalGameTests {
 			TerminalBlockEntity copy = (TerminalBlockEntity) loaded;
 			helper.assertTrue(copy.program().equals(program), "program came back as " + copy.program());
 			helper.assertTrue(copy.isEnabled(), "a running program should start again after loading");
-			helper.assertTrue(copy.power() == 7, "power came back as " + copy.power());
+			helper.assertTrue(copy.output() == 7, "output came back as " + copy.output());
 
 			terminal.stop();
 			helper.succeed();

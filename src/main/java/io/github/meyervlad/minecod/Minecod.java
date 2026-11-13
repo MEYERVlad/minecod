@@ -3,6 +3,7 @@ package io.github.meyervlad.minecod;
 import io.github.meyervlad.minecod.command.MinecodCommands;
 import io.github.meyervlad.minecod.session.Sessions;
 import io.github.meyervlad.minecod.terminal.Terminal;
+import io.github.meyervlad.minecod.wire.Wire;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -31,6 +32,7 @@ public final class Minecod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		HandMining.init();
+		Wire.init();
 		Terminal.init();
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> MinecodCommands.register(dispatcher));

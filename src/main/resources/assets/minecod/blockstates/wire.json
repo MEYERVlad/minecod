@@ -1,0 +1,138 @@
+{
+	"multipart": [
+		{
+			"when": {
+				"power": "0"
+			},
+			"apply": {
+				"model": "minecod:block/wire_core"
+			}
+		},
+		{
+			"when": {
+				"north": "true",
+				"power": "0"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm"
+			}
+		},
+		{
+			"when": {
+				"east": "true",
+				"power": "0"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm",
+				"y": 90
+			}
+		},
+		{
+			"when": {
+				"south": "true",
+				"power": "0"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm",
+				"y": 180
+			}
+		},
+		{
+			"when": {
+				"west": "true",
+				"power": "0"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm",
+				"y": 270
+			}
+		},
+		{
+			"when": {
+				"up": "true",
+				"power": "0"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm",
+				"x": 270
+			}
+		},
+		{
+			"when": {
+				"down": "true",
+				"power": "0"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm",
+				"x": 90
+			}
+		},
+		{
+			"when": {
+				"power": "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"
+			},
+			"apply": {
+				"model": "minecod:block/wire_core_on"
+			}
+		},
+		{
+			"when": {
+				"north": "true",
+				"power": "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm_on"
+			}
+		},
+		{
+			"when": {
+				"east": "true",
+				"power": "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm_on",
+				"y": 90
+			}
+		},
+		{
+			"when": {
+				"south": "true",
+				"power": "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm_on",
+				"y": 180
+			}
+		},
+		{
+			"when": {
+				"west": "true",
+				"power": "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm_on",
+				"y": 270
+			}
+		},
+		{
+			"when": {
+				"up": "true",
+				"power": "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm_on",
+				"x": 270
+			}
+		},
+		{
+			"when": {
+				"down": "true",
+				"power": "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15"
+			},
+			"apply": {
+				"model": "minecod:block/wire_arm_on",
+				"x": 90
+			}
+		}
+	]
+}
