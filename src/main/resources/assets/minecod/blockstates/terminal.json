@@ -1,0 +1,73 @@
+{
+	"variants": {
+		"facing=north,status=idle": {
+			"model": "minecod:block/terminal_idle"
+		},
+		"facing=north,status=running": {
+			"model": "minecod:block/terminal_running"
+		},
+		"facing=north,status=error": {
+			"model": "minecod:block/terminal_error"
+		},
+		"facing=east,status=idle": {
+			"model": "minecod:block/terminal_idle",
+			"y": 90
+		},
+		"facing=east,status=running": {
+			"model": "minecod:block/terminal_running",
+			"y": 90
+		},
+		"facing=east,status=error": {
+			"model": "minecod:block/terminal_error",
+			"y": 90
+		},
+		"facing=south,status=idle": {
+			"model": "minecod:block/terminal_idle",
+			"y": 180
+		},
+		"facing=south,status=running": {
+			"model": "minecod:block/terminal_running",
+			"y": 180
+		},
+		"facing=south,status=error": {
+			"model": "minecod:block/terminal_error",
+			"y": 180
+		},
+		"facing=west,status=idle": {
+			"model": "minecod:block/terminal_idle",
+			"y": 270
+		},
+		"facing=west,status=running": {
+			"model": "minecod:block/terminal_running",
+			"y": 270
+		},
+		"facing=west,status=error": {
+			"model": "minecod:block/terminal_error",
+			"y": 270
+		},
+		"facing=up,status=idle": {
+			"model": "minecod:block/terminal_idle",
+			"x": 270
+		},
+		"facing=up,status=running": {
+			"model": "minecod:block/terminal_running",
+			"x": 270
+		},
+		"facing=up,status=error": {
+			"model": "minecod:block/terminal_error",
+			"x": 270
+		},
+		"facing=down,status=idle": {
+			"model": "minecod:block/terminal_idle",
+			"x": 90
+		},
+		"facing=down,status=running": {
+			"model": "minecod:block/terminal_running",
+			"x": 90
+		},
+		"facing=down,status=error": {
+			"model": "minecod:block/terminal_error",
+			"x": 90
+		}
+	}
+}

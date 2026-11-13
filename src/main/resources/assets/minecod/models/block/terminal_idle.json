@@ -1,0 +1,12 @@
+{
+	"parent": "minecraft:block/cube",
+	"textures": {
+		"particle": "minecod:block/terminal_side",
+		"north": "minecod:block/terminal_front_idle",
+		"south": "minecod:block/terminal_back",
+		"east": "minecod:block/terminal_side",
+		"west": "minecod:block/terminal_side",
+		"up": "minecod:block/terminal_top",
+		"down": "minecod:block/terminal_top"
+	}
+}

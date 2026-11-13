@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "redstone",
+	"key": {
+		"#": "minecraft:cobblestone",
+		"G": "minecraft:glass_pane",
+		"R": "minecraft:redstone"
+	},
+	"pattern": [
+		"###",
+		"#G#",
+		"#R#"
+	],
+	"result": {
+		"id": "minecod:terminal"
+	}
+}

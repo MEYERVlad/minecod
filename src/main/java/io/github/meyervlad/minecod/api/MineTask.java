@@ -5,7 +5,6 @@ import java.util.function.Supplier;
 import io.github.meyervlad.minecod.HandMining;
 import io.github.meyervlad.minecod.script.Task;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.state.BlockState;
@@ -82,7 +81,7 @@ final class MineTask implements Task {
 			return null;
 		}
 
-		String id = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+		String id = LuaApi.id(state);
 		clearOverlay();
 
 		if (!player.gameMode.destroyBlock(target)) {

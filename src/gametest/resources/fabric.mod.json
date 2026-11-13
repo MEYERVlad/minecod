@@ -5,7 +5,10 @@
 	"name": "Minecod game tests",
 	"environment": "*",
 	"entrypoints": {
-		"fabric-gametest": ["io.github.meyervlad.minecod.gametest.MinecodGameTests"],
+		"fabric-gametest": [
+			"io.github.meyervlad.minecod.gametest.MinecodGameTests",
+			"io.github.meyervlad.minecod.gametest.TerminalGameTests"
+		],
 		"fabric-client-gametest": ["io.github.meyervlad.minecod.gametest.MinecodClientGameTest"]
 	},
 	"depends": {

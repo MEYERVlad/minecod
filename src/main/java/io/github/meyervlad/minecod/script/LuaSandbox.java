@@ -73,6 +73,15 @@ public final class LuaSandbox {
 	}
 
 	/**
+	 * Compiles a whole program, as stored in a terminal.
+	 *
+	 * @throws LuaError on a syntax error
+	 */
+	public static LuaValue compileProgram(Globals globals, String code, String chunkName) {
+		return globals.load(code, chunkName);
+	}
+
+	/**
 	 * A one-line, player-friendly version of a Lua error: {@code run:2: attempt to call nil}.
 	 * LuaJ's own message may carry a stack traceback and writes positions as {@code =run:2 ...}.
 	 */

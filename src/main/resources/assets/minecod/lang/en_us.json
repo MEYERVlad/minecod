@@ -11,5 +11,14 @@
 	"minecod.help.pos": "your block coordinates",
 	"minecod.help.inspect": "the block you are looking at, or nil",
 	"minecod.help.mine": "break the block you are looking at",
-	"minecod.help.help": "this list"
+	"minecod.help.help": "this list",
+	"block.minecod.terminal": "Terminal",
+	"minecod.terminal.program": "Program",
+	"minecod.terminal.placeholder": "Lua program. Try: while true do mine() sleep(1) end",
+	"minecod.terminal.output": "Output",
+	"minecod.terminal.run": "Run",
+	"minecod.terminal.stop": "Stop",
+	"minecod.terminal.status.idle": "Stopped",
+	"minecod.terminal.status.running": "Running",
+	"minecod.terminal.status.error": "Error"
 }

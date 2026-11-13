@@ -1,12 +1,19 @@
 package io.github.meyervlad.minecod.gametest;
 
+import java.util.List;
+
 import com.mojang.blaze3d.platform.InputConstants;
+import io.github.meyervlad.minecod.client.TerminalScreen;
+import io.github.meyervlad.minecod.terminal.TerminalBlock;
+import io.github.meyervlad.minecod.terminal.TerminalBlockEntity;
+import io.github.meyervlad.minecod.terminal.TerminalStatus;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 
 /**
@@ -16,6 +23,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 public class MinecodClientGameTest implements FabricClientGameTest {
 	/** Directly in front of the player's eyes once they stand at 0.5 100 0.5 facing south. */
 	private static final BlockPos TARGET = new BlockPos(0, 101, 2);
+	private static final BlockPos TERMINAL = new BlockPos(0, 100, 2);
 	private static final int PUNCH_TICKS = 40;
 
 	@Override
@@ -56,7 +64,10 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 			context.waitTicks(10);
 			context.takeScreenshot("3-chat-output");
 
+			testTerminal(context, world);
+
 			// With the rule switched off, hands work again.
+			server.runCommand("tp @a 0.5 100 0.5 0 0");
 			server.runCommand("gamerule minecod:hand_mining true");
 			placeTarget(server);
 			context.waitTicks(10);
@@ -65,8 +76,82 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		}
 	}
 
+	/** Opens a terminal with a right click, types a program, runs it and watches it mine. */
+	private static void testTerminal(ClientGameTestContext context, TestSingleplayerContext world) {
+		TestServerContext server = world.getServer();
+		// Typed below with Tab in front of the indented lines.
+		List<String> lines = List.of("while true do", "  if mine() then print('mined') end", "  sleep(0.2)", "end");
+		String program = String.join("\n", lines);
+		context.runOnClient(client -> client.gui.hud.getChat().clearMessages(false));
+
+		// The terminal sits below eye level with its screen towards the player.
+		server.runCommand("setblock " + coordinates(TERMINAL) + " minecod:terminal[facing=north]");
+		server.runCommand("tp @a 0.5 100 0.5 0 37");
+		context.waitTicks(10);
+		context.takeScreenshot("4-terminal-in-the-world");
+
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+		context.waitForScreen(TerminalScreen.class);
+
+		for (int i = 0; i < lines.size(); i++) {
+			if (i > 0) {
+				context.getInput().pressKey(InputConstants.KEY_RETURN);
+			}
+
+			String line = lines.get(i);
+
+			if (line.startsWith("  ")) {
+				context.getInput().pressKey(InputConstants.KEY_TAB);
+			}
+
+			context.getInput().typeChars(line.strip());
+		}
+
+		context.clickScreenButton("minecod.terminal.run");
+		server.waitFor(s -> terminal(s).isRunning());
+		check(terminal(server).program().equals(program), "the server got the program as: " + terminal(server).program());
+
+		// Give it something to mine and wait for the screen to show the output.
+		server.runCommand("setblock " + coordinates(TERMINAL.north()) + " minecraft:dirt");
+		server.waitFor(s -> s.overworld().getBlockState(TERMINAL.north()).isAir());
+		server.waitFor(s -> terminal(s).logLines().contains("mined"));
+		context.waitTicks(15);
+		context.takeScreenshot("5-terminal-editor");
+
+		// Closing keeps the program running.
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitForScreen(null);
+		context.waitTicks(5);
+		check(terminal(server).isRunning(), "closing the screen stopped the program");
+		check(context.computeOnClient(client -> client.level.getBlockState(TERMINAL).getValue(TerminalBlock.STATUS)) == TerminalStatus.RUNNING,
+				"the client does not see the terminal as running");
+		context.takeScreenshot("6-terminal-running");
+
+		// Reopening shows the saved program; Stop stops it.
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+		context.waitForScreen(TerminalScreen.class);
+		context.clickScreenButton("minecod.terminal.stop");
+		server.waitFor(s -> !terminal(s).isRunning());
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitForScreen(null);
+		check(terminal(server).program().equals(program), "the program changed after reopening: " + terminal(server).program());
+		server.runCommand("setblock " + coordinates(TERMINAL) + " minecraft:air");
+	}
+
+	private static TerminalBlockEntity terminal(MinecraftServer server) {
+		return (TerminalBlockEntity) server.overworld().getBlockEntity(TERMINAL);
+	}
+
+	private static TerminalBlockEntity terminal(TestServerContext server) {
+		return server.computeOnServer(MinecodClientGameTest::terminal);
+	}
+
+	private static String coordinates(BlockPos pos) {
+		return pos.getX() + " " + pos.getY() + " " + pos.getZ();
+	}
+
 	private static void placeTarget(TestServerContext server) {
-		server.runCommand("setblock " + TARGET.getX() + " " + TARGET.getY() + " " + TARGET.getZ() + " minecraft:dirt");
+		server.runCommand("setblock " + coordinates(TARGET) + " minecraft:dirt");
 	}
 
 	private static boolean targetIsAir(TestServerContext server) {

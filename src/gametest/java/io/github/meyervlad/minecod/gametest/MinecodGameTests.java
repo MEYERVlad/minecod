@@ -32,10 +32,10 @@ import org.luaj.vm2.Globals;
  * south, so the block in front of their eyes is {@link #TARGET}.
  */
 public class MinecodGameTests {
-	private static final BlockPos TARGET = new BlockPos(1, 2, 3);
+	static final BlockPos TARGET = new BlockPos(1, 2, 3);
 
 	/** A survival-mode player with a fake network connection, standing in the test area. */
-	private static ServerPlayer spawnPlayer(GameTestHelper helper) {
+	static ServerPlayer spawnPlayer(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		MinecraftServer server = level.getServer();
 		CommonListenerCookie cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), "test-player"), false);
@@ -48,6 +48,8 @@ public class MinecodGameTests {
 		Vec3 feet = helper.absoluteVec(new Vec3(1.5, 1, 1.5));
 		player.snapTo(feet.x, feet.y, feet.z, 0, 0);
 		player.setYHeadRot(0);
+		// Nothing ticks this player's movement either, and mining in mid-air is five times slower.
+		player.setOnGround(true);
 		return player;
 	}
 
@@ -57,13 +59,13 @@ public class MinecodGameTests {
 		player.setYHeadRot(yaw);
 	}
 
-	private static void removePlayer(GameTestHelper helper, ServerPlayer player) {
+	static void removePlayer(GameTestHelper helper, ServerPlayer player) {
 		Minecod.sessions().close(player.getUUID());
 		helper.getLevel().getServer().getPlayerList().remove(player);
 	}
 
 	/** Runs code for the player the way the mod does, but lets the test see what it returned. */
-	private static Script startScript(GameTestHelper helper, ServerPlayer player, String code) {
+	static Script startScript(GameTestHelper helper, ServerPlayer player, String code) {
 		Globals globals = LuaSandbox.create();
 		PlayerApi.install(globals, () -> player);
 		Script script = Script.start(globals, LuaSandbox.compile(globals, code, "=test"), "gametest");
@@ -71,7 +73,7 @@ public class MinecodGameTests {
 		return script;
 	}
 
-	private static void expectResults(GameTestHelper helper, Script script, List<String> expected) {
+	static void expectResults(GameTestHelper helper, Script script, List<String> expected) {
 		helper.assertTrue(script.isDone(), "script is still running");
 		helper.assertTrue(script.state() == Script.State.FINISHED, "script " + script.state() + ": " + script.error());
 		helper.assertTrue(script.results().equals(expected), "script returned " + script.results() + ", expected " + expected);

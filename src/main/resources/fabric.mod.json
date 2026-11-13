@@ -8,7 +8,8 @@
 	"license": "All-Rights-Reserved",
 	"environment": "*",
 	"entrypoints": {
-		"main": ["io.github.meyervlad.minecod.Minecod"]
+		"main": ["io.github.meyervlad.minecod.Minecod"],
+		"client": ["io.github.meyervlad.minecod.client.MinecodClient"]
 	},
 	"depends": {
 		"fabricloader": ">=0.20.1",
