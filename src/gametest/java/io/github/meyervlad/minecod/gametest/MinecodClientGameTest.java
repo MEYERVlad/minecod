@@ -21,6 +21,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
@@ -73,6 +74,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 			context.takeScreenshot("3-chat-output");
 
 			testNotebook(context, world);
+			testActions(context, world);
 			testTerminal(context, world);
 			testWires(context, world);
 
@@ -116,6 +118,29 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		typeInChat(context, "> dig()");
 		server.waitFor(s -> s.overworld().getBlockState(TARGET).isAir());
 		server.runCommand("clear @a minecod:notebook");
+	}
+
+	/** Picks a block out of the hotbar and places it, all from chat. */
+	private static void testActions(ClientGameTestContext context, TestSingleplayerContext world) {
+		TestServerContext server = world.getServer();
+		BlockPos placed = TARGET.north();
+		server.runCommand("clear @a");
+		server.runCommand("item replace entity @a hotbar.2 with minecraft:cobblestone 4");
+		placeTarget(server);
+		context.waitTicks(5);
+
+		// The server changes the selected slot; the client has to follow.
+		typeInChat(context, "> select('minecraft:cobblestone')");
+		context.waitFor(client -> client.player.getInventory().getSelectedSlot() == 2);
+
+		typeInChat(context, "> place()");
+		server.waitFor(s -> s.overworld().getBlockState(placed).is(Blocks.COBBLESTONE));
+		world.getConnection().waitForClientboundPackets();
+		check(context.computeOnClient(client -> client.level.getBlockState(placed).is(Blocks.COBBLESTONE)), "the client does not see the placed block");
+
+		server.runCommand("setblock " + coordinates(placed) + " minecraft:air");
+		server.runCommand("setblock " + coordinates(TARGET) + " minecraft:air");
+		server.runCommand("clear @a");
 	}
 
 	/** Opens a terminal with a right click, types a program, runs it and watches it mine. */

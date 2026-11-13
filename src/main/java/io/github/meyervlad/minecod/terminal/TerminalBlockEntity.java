@@ -3,6 +3,7 @@ package io.github.meyervlad.minecod.terminal;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 import io.github.meyervlad.minecod.Programs;
@@ -353,6 +354,19 @@ public final class TerminalBlockEntity extends BaseContainerBlockEntity implemen
 		}
 
 		return count;
+	}
+
+	/** The first storage slot whose contents pass the test, or -1. */
+	int findStored(Predicate<ItemStack> test) {
+		for (int slot : STORAGE) {
+			ItemStack stack = items.get(slot);
+
+			if (!stack.isEmpty() && test.test(stack)) {
+				return slot;
+			}
+		}
+
+		return -1;
 	}
 
 	/**

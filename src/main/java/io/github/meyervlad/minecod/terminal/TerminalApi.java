@@ -2,15 +2,19 @@ package io.github.meyervlad.minecod.terminal;
 
 import io.github.meyervlad.minecod.api.LuaApi;
 import io.github.meyervlad.minecod.script.Script;
+import net.minecraft.core.Direction;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.DirectionalPlaceContext;
 import net.minecraft.world.level.block.state.BlockState;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 
 /**
- * The Lua functions available to a terminal's program. They act through the block: it mines
- * and inspects what is in front of its screen, and talks to wires and redstone.
+ * The Lua functions available to a terminal's program. They act through the block: it mines,
+ * places and inspects in front of its screen, and talks to wires and redstone.
  */
 final class TerminalApi extends LuaApi {
 	private static final int FULL_POWER = 15;
@@ -28,6 +32,7 @@ final class TerminalApi extends LuaApi {
 		api.add(globals, "pos() -> x, y, z", api::pos);
 		api.add(globals, "inspect() -> id", api::inspect);
 		api.add(globals, "mine() -> true, id | false, reason", api::mine);
+		api.add(globals, "place([id]) -> true, id | false, reason", api::place);
 		api.add(globals, "tool() -> id, uses left", api::tool);
 		api.add(globals, "count([id]) -> number", api::count);
 		api.add(globals, "push() -> number moved", api::push);
@@ -59,6 +64,36 @@ final class TerminalApi extends LuaApi {
 
 	private Varargs mine(Varargs args) {
 		return Script.await(new TerminalMineTask(terminal));
+	}
+
+	/** Places a block from storage in front of the screen: a given kind, or the first one found. */
+	private Varargs place(Varargs args) {
+		String id = args.optjstring(1, null);
+		return Script.await(() -> {
+			Item wanted = id == null ? null : item(id);
+			int slot = terminal.findStored(stack -> stack.getItem() instanceof BlockItem && (wanted == null || stack.is(wanted)));
+
+			if (slot < 0) {
+				return failure(wanted == null ? "nothing to place" : "no such block in storage");
+			}
+
+			ItemStack stack = terminal.getItem(slot);
+			// As if set down on the ground in front: logs stand upright, saplings check their soil.
+			DirectionalPlaceContext context = new DirectionalPlaceContext(terminal.serverLevel(), terminal.frontPos(), terminal.facing(), stack, Direction.UP);
+
+			if (!context.canPlace()) {
+				return failure("blocked");
+			}
+
+			String placed = id(stack);
+
+			if (!((BlockItem) stack.getItem()).place(context).consumesAction()) {
+				return failure("cannot place");
+			}
+
+			terminal.setChanged();
+			return LuaValue.varargsOf(LuaValue.TRUE, LuaValue.valueOf(placed));
+		}, Script.INSTRUCTIONS_PER_TICK);
 	}
 
 	/** The tool in the tool slot and how many more blocks it will last, or nil for bare hands. */

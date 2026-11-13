@@ -385,6 +385,75 @@ public class TerminalGameTests {
 	}
 
 	@GameTest(maxTicks = 100)
+	public void placesABlockFromStorageInFront(GameTestHelper helper) {
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "return place(), count()");
+		terminal.setItem(1, new ItemStack(Items.DIRT, 3));
+		terminal.run();
+
+		helper.succeedWhen(() -> {
+			expectLog(helper, terminal, List.of("= true, 2"));
+			helper.assertBlockPresent(Blocks.DIRT, FRONT);
+		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void placesTheKindOfBlockAskedFor(GameTestHelper helper) {
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "return place('minecraft:cobblestone')");
+		terminal.setItem(1, new ItemStack(Items.DIRT, 3));
+		terminal.setItem(2, new ItemStack(Items.COBBLESTONE, 3));
+		terminal.run();
+
+		helper.succeedWhen(() -> {
+			expectLog(helper, terminal, List.of("= true, minecraft:cobblestone"));
+			helper.assertBlockPresent(Blocks.COBBLESTONE, FRONT);
+			expectStored(helper, terminal, Items.DIRT, 3);
+		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void placeSaysWhyItCannot(GameTestHelper helper) {
+		// Nothing but a stick to place; then a block, but the way is blocked.
+		TerminalBlockEntity empty = place(helper, TERMINAL, "print(place()) print(place('minecraft:dirt'))");
+		empty.setItem(1, new ItemStack(Items.STICK));
+
+		BlockPos second = new BlockPos(5, 2, 2);
+		helper.setBlock(second.south(), Blocks.STONE);
+		TerminalBlockEntity blocked = place(helper, second, "print(place())");
+		blocked.setItem(1, new ItemStack(Items.DIRT));
+
+		empty.run();
+		blocked.run();
+
+		helper.succeedWhen(() -> {
+			expectLog(helper, empty, List.of("false nothing to place", "false no such block in storage"));
+			expectLog(helper, blocked, List.of("false blocked"));
+			helper.assertBlockPresent(Blocks.STONE, second.south());
+		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void plantsASaplingButOnlyOnSoil(GameTestHelper helper) {
+		helper.setBlock(FRONT.below(), Blocks.DIRT);
+		TerminalBlockEntity onSoil = place(helper, TERMINAL, "return place()");
+		onSoil.setItem(1, new ItemStack(Items.OAK_SAPLING));
+
+		BlockPos second = new BlockPos(5, 2, 2);
+		helper.setBlock(second.south().below(), Blocks.STONE);
+		TerminalBlockEntity onStone = place(helper, second, "return place()");
+		onStone.setItem(1, new ItemStack(Items.OAK_SAPLING));
+
+		onSoil.run();
+		onStone.run();
+
+		helper.succeedWhen(() -> {
+			expectLog(helper, onSoil, List.of("= true, minecraft:oak_sapling"));
+			helper.assertBlockPresent(Blocks.OAK_SAPLING, FRONT);
+			expectLog(helper, onStone, List.of("= false, cannot place"));
+			expectStored(helper, onStone, Items.OAK_SAPLING, 1);
+		});
+	}
+
+	@GameTest(maxTicks = 100)
 	public void aMinedTerminalKeepsItsProgramOnTheItem(GameTestHelper helper) {
 		String program = "print('still here')";
 		TerminalBlockEntity terminal = place(helper, TERMINAL, program);

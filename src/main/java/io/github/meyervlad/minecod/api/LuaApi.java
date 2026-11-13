@@ -76,6 +76,11 @@ public abstract class LuaApi {
 		return Script.await(() -> waited[0]++ < ticks ? null : LuaValue.NONE);
 	}
 
+	/** What a function returns when it could not do its job: {@code false} and why. */
+	protected static Varargs failure(String reason) {
+		return LuaValue.varargsOf(LuaValue.FALSE, LuaValue.valueOf(reason));
+	}
+
 	protected static Varargs coordinates(BlockPos pos) {
 		return LuaValue.varargsOf(LuaValue.valueOf(pos.getX()), LuaValue.valueOf(pos.getY()), LuaValue.valueOf(pos.getZ()));
 	}
