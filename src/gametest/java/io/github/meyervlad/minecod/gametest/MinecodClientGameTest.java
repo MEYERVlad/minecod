@@ -3,6 +3,7 @@ package io.github.meyervlad.minecod.gametest;
 import java.util.List;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import io.github.meyervlad.minecod.client.TerminalInventoryScreen;
 import io.github.meyervlad.minecod.client.TerminalScreen;
 import io.github.meyervlad.minecod.terminal.TerminalBlock;
 import io.github.meyervlad.minecod.terminal.TerminalBlockEntity;
@@ -16,6 +17,8 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
@@ -131,6 +134,19 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 				"the client does not see the terminal as running");
 		context.takeScreenshot("6-terminal-running");
 
+		// The editor's Inventory button leads to the slots, and what the terminal mined is there.
+		server.runOnServer(s -> terminal(s).setItem(TerminalBlockEntity.TOOL_SLOT, new ItemStack(Items.IRON_PICKAXE)));
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+		context.waitForScreen(TerminalScreen.class);
+		context.clickScreenButton("minecod.terminal.inventory");
+		context.waitForScreen(TerminalInventoryScreen.class);
+		context.waitTicks(5);
+		check(context.computeOnClient(client -> ((TerminalInventoryScreen) client.gui.screen()).getMenu().getSlot(1).getItem().is(Items.DIRT)),
+				"the inventory screen does not show the mined dirt");
+		context.takeScreenshot("7-terminal-inventory");
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitForScreen(null);
+
 		// Reopening shows the saved program; Stop stops it.
 		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
 		context.waitForScreen(TerminalScreen.class);
@@ -167,7 +183,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		server.runCommand("setblock " + coordinates(lamp) + " minecraft:redstone_lamp");
 		server.runCommand("tp @a 1.5 100 -2.5 0 0");
 		context.waitTicks(10);
-		context.takeScreenshot("7-wires-off");
+		context.takeScreenshot("8-wires-off");
 
 		server.runOnServer(s -> {
 			terminal(s).setProgram("emit(15)");
@@ -178,7 +194,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		context.waitTicks(5);
 		check(context.computeOnClient(client -> client.level.getBlockState(wires.get(2)).getValue(WireBlock.POWER)) == 15, "the client does not see the wire as live");
 		check(context.computeOnClient(client -> client.level.getBlockState(lamp).getValue(RedstoneLampBlock.LIT)), "the client does not see the lamp lit");
-		context.takeScreenshot("8-wires-on");
+		context.takeScreenshot("9-wires-on");
 
 		server.runOnServer(s -> terminal(s).stop());
 		wires.forEach(wire -> server.runCommand("setblock " + coordinates(wire) + " minecraft:air"));

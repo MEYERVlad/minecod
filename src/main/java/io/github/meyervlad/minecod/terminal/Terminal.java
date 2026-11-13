@@ -12,6 +12,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -21,7 +23,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 
-/** The terminal's registered pieces: block, item and block entity type. */
+/** The terminal's registered pieces: block, item, block entity type and inventory menu. */
 public final class Terminal {
 	private static final ResourceKey<Block> BLOCK_KEY = ResourceKey.create(Registries.BLOCK, Minecod.id("terminal"));
 	private static final ResourceKey<Item> ITEM_KEY = ResourceKey.create(Registries.ITEM, Minecod.id("terminal"));
@@ -40,6 +42,9 @@ public final class Terminal {
 
 	public static final BlockEntityType<TerminalBlockEntity> ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, Minecod.id("terminal"),
 			new BlockEntityType<>(TerminalBlockEntity::new, Set.of(BLOCK)));
+
+	public static final MenuType<TerminalMenu> MENU = Registry.register(BuiltInRegistries.MENU, Minecod.id("terminal"),
+			new MenuType<>(TerminalMenu::new, FeatureFlags.VANILLA_SET));
 
 	private Terminal() {
 	}

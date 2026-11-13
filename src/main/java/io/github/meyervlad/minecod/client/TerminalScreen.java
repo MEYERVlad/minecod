@@ -18,8 +18,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 
 /**
- * A terminal's editor: the program on top, what it printed below, and buttons to run and
- * stop it. Closing the screen saves the text.
+ * A terminal's editor: the program on top, what it printed below, and buttons to run it,
+ * stop it and get at its inventory. Closing the screen saves the text.
  */
 public final class TerminalScreen extends Screen {
 	private static final int MARGIN = 8;
@@ -96,6 +96,11 @@ public final class TerminalScreen extends Screen {
 		x -= BUTTON_WIDTH + GAP;
 		addRenderableWidget(Button.builder(Component.translatable("minecod.terminal.run"), button -> send(Action.RUN))
 				.bounds(x, buttonsTop, BUTTON_WIDTH, BUTTON_HEIGHT).build());
+		addRenderableWidget(Button.builder(Component.translatable("minecod.terminal.inventory"), button -> {
+			// The inventory replaces this screen without closing it, so save by hand.
+			send(Action.SAVE);
+			send(Action.INVENTORY);
+		}).bounds(MARGIN, buttonsTop, BUTTON_WIDTH, BUTTON_HEIGHT).build());
 	}
 
 	/** Tab indents instead of jumping to the buttons. Shift+Tab still moves the focus. */
@@ -140,8 +145,8 @@ public final class TerminalScreen extends Screen {
 		}
 
 		Component statusText = Component.translatable("minecod.terminal.status." + status.getSerializedName());
-		int statusY = height - MARGIN - BUTTON_HEIGHT + (BUTTON_HEIGHT - font.lineHeight) / 2;
-		graphics.text(font, statusText, MARGIN, statusY, switch (status) {
+		int titleY = (TITLE_HEIGHT - font.lineHeight) / 2;
+		graphics.text(font, statusText, width - MARGIN - font.width(statusText), titleY, switch (status) {
 			case IDLE -> GRAY;
 			case RUNNING -> GREEN;
 			case ERROR -> RED;

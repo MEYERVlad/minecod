@@ -17,12 +17,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.entity.HopperBlockEntity;
 
 /**
  * The terminal block in a real world. Terminals here face south, so the block they work on
@@ -49,6 +52,11 @@ public class TerminalGameTests {
 		helper.assertTrue(terminal.logLines().equals(expected), "terminal printed " + terminal.logLines() + ", expected " + expected);
 	}
 
+	private static void expectStored(GameTestHelper helper, TerminalBlockEntity terminal, Item item, int expected) {
+		int stored = terminal.countItem(item);
+		helper.assertTrue(stored == expected, "terminal holds " + stored + " of " + item + ", expected " + expected);
+	}
+
 	private static void expectStatus(GameTestHelper helper, TerminalBlockEntity terminal, TerminalStatus expected) {
 		helper.assertTrue(terminal.status() == expected, "terminal is " + terminal.status() + ", expected " + expected);
 	}
@@ -71,10 +79,130 @@ public class TerminalGameTests {
 
 		helper.runAfterDelay(6, () -> helper.succeedWhen(() -> {
 			helper.assertBlockPresent(Blocks.AIR, FRONT);
-			helper.assertItemEntityPresent(Items.DIRT, FRONT, 2);
+			// What it mines goes into its storage, not onto the ground.
+			expectStored(helper, terminal, Items.DIRT, 1);
+			helper.assertItemEntityNotPresent(Items.DIRT, FRONT, 2);
 			expectStatus(helper, terminal, TerminalStatus.IDLE);
 			expectLog(helper, terminal, List.of("= true, minecraft:dirt"));
 		}));
+	}
+
+	@GameTest(maxTicks = 100)
+	public void aPickaxeMakesItFastAndGetsTheDrops(GameTestHelper helper) {
+		helper.setBlock(FRONT, Blocks.STONE);
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "return mine()");
+		terminal.setItem(TerminalBlockEntity.TOOL_SLOT, new ItemStack(Items.IRON_PICKAXE));
+		long started = helper.getTick();
+		terminal.run();
+
+		helper.succeedWhen(() -> {
+			helper.assertBlockPresent(Blocks.AIR, FRONT);
+			long elapsed = helper.getTick() - started;
+			// Bare hands need 150 ticks for stone; an iron pickaxe needs 8.
+			helper.assertTrue(elapsed <= 12, "stone took " + elapsed + " ticks with an iron pickaxe");
+			expectStored(helper, terminal, Items.COBBLESTONE, 1);
+			helper.assertTrue(terminal.tool().getDamageValue() == 1, "the pickaxe took " + terminal.tool().getDamageValue() + " damage");
+		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void aWornOutToolLeavesTheSlotEmpty(GameTestHelper helper) {
+		helper.setBlock(FRONT, Blocks.STONE);
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "mine() return tool()");
+		ItemStack pickaxe = new ItemStack(Items.IRON_PICKAXE);
+		pickaxe.setDamageValue(pickaxe.getMaxDamage() - 1);
+		terminal.setItem(TerminalBlockEntity.TOOL_SLOT, pickaxe);
+		terminal.run();
+
+		helper.succeedWhen(() -> {
+			expectLog(helper, terminal, List.of("= nil"));
+			helper.assertTrue(terminal.tool().isEmpty(), "the broken pickaxe is still there: " + terminal.tool());
+		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void whatDoesNotFitFallsOnTheGround(GameTestHelper helper) {
+		helper.setBlock(FRONT, Blocks.DIRT);
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "return mine()");
+
+		for (int slot = 1; slot < TerminalBlockEntity.SLOTS; slot++) {
+			terminal.setItem(slot, new ItemStack(Items.STONE, 64));
+		}
+
+		terminal.run();
+
+		helper.succeedWhen(() -> {
+			helper.assertBlockPresent(Blocks.AIR, FRONT);
+			helper.assertItemEntityPresent(Items.DIRT, FRONT, 2);
+			expectStored(helper, terminal, Items.DIRT, 0);
+		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void toolAndCountDescribeTheInventory(GameTestHelper helper) {
+		TerminalBlockEntity terminal = place(helper, TERMINAL,
+				"local id, uses = tool() return id, uses, count(), count('minecraft:dirt'), count('minecraft:stick')");
+		terminal.setItem(TerminalBlockEntity.TOOL_SLOT, new ItemStack(Items.IRON_PICKAXE));
+		terminal.setItem(1, new ItemStack(Items.DIRT, 5));
+		terminal.setItem(4, new ItemStack(Items.COBBLESTONE, 3));
+		terminal.run();
+
+		helper.succeedWhen(() -> expectLog(helper, terminal, List.of("= minecraft:iron_pickaxe, 250, 8, 5, 0")));
+	}
+
+	@GameTest(maxTicks = 100)
+	public void countRejectsAnUnknownItem(GameTestHelper helper) {
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "return count('minecraft:no_such_thing')");
+		terminal.run();
+
+		helper.succeedWhen(() -> {
+			expectStatus(helper, terminal, TerminalStatus.ERROR);
+			helper.assertTrue(terminal.logLines().getFirst().contains("no such item"), "terminal printed " + terminal.logLines());
+		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void pushUnloadsStorageIntoAChest(GameTestHelper helper) {
+		helper.setBlock(SIDE, Blocks.CHEST);
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "return push(), count()");
+		terminal.setItem(TerminalBlockEntity.TOOL_SLOT, new ItemStack(Items.IRON_PICKAXE));
+		terminal.setItem(1, new ItemStack(Items.DIRT, 10));
+		terminal.run();
+
+		helper.succeedWhen(() -> {
+			expectLog(helper, terminal, List.of("= 10, 0"));
+			int inChest = helper.getBlockEntity(SIDE, ChestBlockEntity.class).countItem(Items.DIRT);
+			helper.assertTrue(inChest == 10, "the chest holds " + inChest + " dirt");
+			helper.assertTrue(terminal.tool().is(Items.IRON_PICKAXE), "the tool went with the rest");
+		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void aHopperTakesStorageButNotTheTool(GameTestHelper helper) {
+		BlockPos hopper = TERMINAL.below();
+		helper.setBlock(hopper, Blocks.HOPPER);
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "");
+		terminal.setItem(TerminalBlockEntity.TOOL_SLOT, new ItemStack(Items.IRON_PICKAXE));
+		terminal.setItem(1, new ItemStack(Items.DIRT, 2));
+
+		helper.succeedWhen(() -> {
+			int inHopper = helper.getBlockEntity(hopper, HopperBlockEntity.class).countItem(Items.DIRT);
+			helper.assertTrue(inHopper == 2, "the hopper holds " + inHopper + " dirt");
+			helper.assertTrue(terminal.tool().is(Items.IRON_PICKAXE), "the hopper took the tool");
+		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void breakingItDropsWhatItHeld(GameTestHelper helper) {
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "");
+		terminal.setItem(TerminalBlockEntity.TOOL_SLOT, new ItemStack(Items.IRON_PICKAXE));
+		terminal.setItem(1, new ItemStack(Items.DIRT, 2));
+		helper.setBlock(TERMINAL, Blocks.AIR);
+
+		helper.succeedWhen(() -> {
+			helper.assertItemEntityPresent(Items.IRON_PICKAXE, TERMINAL, 2);
+			helper.assertItemEntityPresent(Items.DIRT, TERMINAL, 2);
+		});
 	}
 
 	@GameTest(maxTicks = 300)
@@ -201,7 +329,7 @@ public class TerminalGameTests {
 
 	@GameTest(maxTicks = 100)
 	public void runningAgainStartsFromScratch(GameTestHelper helper) {
-		TerminalBlockEntity terminal = place(helper, TERMINAL, "count = (count or 0) + 1 print(count) while true do sleep(1) end");
+		TerminalBlockEntity terminal = place(helper, TERMINAL, "runs = (runs or 0) + 1 print(runs) while true do sleep(1) end");
 		terminal.run();
 
 		helper.startSequence()

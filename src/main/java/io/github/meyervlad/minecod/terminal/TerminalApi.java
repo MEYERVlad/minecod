@@ -2,6 +2,7 @@ package io.github.meyervlad.minecod.terminal;
 
 import io.github.meyervlad.minecod.api.LuaApi;
 import io.github.meyervlad.minecod.script.Script;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
@@ -27,6 +28,9 @@ final class TerminalApi extends LuaApi {
 		api.add(globals, "pos() -> x, y, z", api::pos);
 		api.add(globals, "inspect() -> id", api::inspect);
 		api.add(globals, "mine() -> true, id | false, reason", api::mine);
+		api.add(globals, "tool() -> id, uses left", api::tool);
+		api.add(globals, "count([id]) -> number", api::count);
+		api.add(globals, "push() -> number moved", api::push);
 		api.add(globals, "emit(number)", api::emit);
 		api.add(globals, "signal() -> number", api::signal);
 		api.add(globals, "redstone() -> 0..15", api::redstone);
@@ -55,6 +59,30 @@ final class TerminalApi extends LuaApi {
 
 	private Varargs mine(Varargs args) {
 		return Script.await(new TerminalMineTask(terminal));
+	}
+
+	/** The tool in the tool slot and how many more blocks it will last, or nil for bare hands. */
+	private Varargs tool(Varargs args) {
+		return Script.await(() -> {
+			ItemStack tool = terminal.tool();
+
+			if (tool.isEmpty()) {
+				return LuaValue.NIL;
+			}
+
+			return LuaValue.varargsOf(LuaValue.valueOf(id(tool)), LuaValue.valueOf(tool.getMaxDamage() - tool.getDamageValue()));
+		});
+	}
+
+	/** How many items are in storage: of the given kind, or of every kind. */
+	private Varargs count(Varargs args) {
+		String id = args.optjstring(1, null);
+		return Script.await(() -> LuaValue.valueOf(terminal.stored(id == null ? null : item(id))));
+	}
+
+	/** Unloads storage into the containers touching the terminal. */
+	private Varargs push(Varargs args) {
+		return Script.await(() -> LuaValue.valueOf(terminal.pushToNeighbors()));
 	}
 
 	/** Accepts any number or, for convenience, true and false for full redstone power and none. */

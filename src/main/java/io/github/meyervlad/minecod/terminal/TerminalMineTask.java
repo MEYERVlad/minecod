@@ -1,9 +1,15 @@
 package io.github.meyervlad.minecod.terminal;
 
+import java.util.List;
+
 import io.github.meyervlad.minecod.api.LuaApi;
 import io.github.meyervlad.minecod.script.Task;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -11,14 +17,19 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 
 /**
- * {@code mine()} for a terminal: breaks the block in front of it at the speed of a bare hand.
- * Like a bare hand, it is slow on blocks that need a tool and gets no drops from them.
+ * {@code mine()} for a terminal: breaks the block in front of it with the tool in its tool
+ * slot, at the speed a player would manage with that tool. Without the right tool it is as
+ * slow as a bare hand and, like a bare hand, gets nothing from blocks that need one.
+ *
+ * <p>What the block drops goes into the terminal's storage; only what does not fit falls
+ * on the ground.
  */
 final class TerminalMineTask implements Task {
 	/** Vanilla's numbers: break time in ticks is hardness times one of these. */
 	private static final float TICKS_PER_HARDNESS = 30;
 	private static final float TICKS_PER_HARDNESS_WITHOUT_TOOL = 100;
 
+	private final TerminalBlockEntity terminal;
 	private final ServerLevel level;
 	private final BlockPos target;
 	/** Stands in for an entity id so the client can tell crack overlays apart. */
@@ -29,6 +40,7 @@ final class TerminalMineTask implements Task {
 	private int shownStage = -1;
 
 	TerminalMineTask(TerminalBlockEntity terminal) {
+		this.terminal = terminal;
 		this.level = terminal.serverLevel();
 		this.target = terminal.frontPos();
 		// Far above any real entity id, and unlike the negative ids used for players' scripts.
@@ -55,8 +67,9 @@ final class TerminalMineTask implements Task {
 			return stop("unbreakable");
 		}
 
-		boolean needsTool = state.requiresCorrectToolForDrops();
-		progress += hardness == 0 ? 1 : 1 / (hardness * (needsTool ? TICKS_PER_HARDNESS_WITHOUT_TOOL : TICKS_PER_HARDNESS));
+		ItemStack tool = terminal.tool();
+		boolean harvests = !state.requiresCorrectToolForDrops() || tool.isCorrectToolForDrops(state);
+		progress += hardness == 0 ? 1 : speed(tool, state) / (hardness * (harvests ? TICKS_PER_HARDNESS : TICKS_PER_HARDNESS_WITHOUT_TOOL));
 
 		if (progress < 1) {
 			int stage = (int) (progress * 10);
@@ -70,8 +83,46 @@ final class TerminalMineTask implements Task {
 		}
 
 		clearOverlay();
-		level.destroyBlock(target, !needsTool);
+		// Work out the drops while the block (and any block entity) is still there.
+		List<ItemStack> drops = harvests ? Block.getDrops(state, level, target, level.getBlockEntity(target), null, tool) : List.of();
+		level.destroyBlock(target, false);
+
+		if (harvests) {
+			// Experience from ores and the like.
+			state.spawnAfterBreak(level, target, tool, true);
+		}
+
+		for (ItemStack drop : drops) {
+			ItemStack rest = terminal.store(drop);
+
+			if (!rest.isEmpty()) {
+				Block.popResource(level, target, rest);
+			}
+		}
+
+		if (hardness != 0 && tool.isDamageableItem()) {
+			// A tool that wears out completely leaves the slot empty.
+			tool.hurtAndBreak(1, level, null, broken -> { });
+		}
+
+		terminal.setChanged();
 		return LuaValue.varargsOf(LuaValue.TRUE, LuaValue.valueOf(LuaApi.id(state)));
+	}
+
+	/** A tool's speed on a block, as vanilla works it out for a player: efficiency only helps the right tool. */
+	private float speed(ItemStack tool, BlockState state) {
+		float speed = tool.getDestroySpeed(state);
+
+		if (speed > 1) {
+			int efficiency = EnchantmentHelper.getItemEnchantmentLevel(
+					level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), tool);
+
+			if (efficiency > 0) {
+				speed += efficiency * efficiency + 1;
+			}
+		}
+
+		return speed;
 	}
 
 	@Override

@@ -19,6 +19,7 @@
 	"minecod.terminal.output": "Вывод",
 	"minecod.terminal.run": "Запустить",
 	"minecod.terminal.stop": "Остановить",
+	"minecod.terminal.inventory": "Инвентарь",
 	"minecod.terminal.status.idle": "Остановлен",
 	"minecod.terminal.status.running": "Работает",
 	"minecod.terminal.status.error": "Ошибка"

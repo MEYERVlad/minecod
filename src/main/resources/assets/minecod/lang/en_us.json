@@ -19,6 +19,7 @@
 	"minecod.terminal.output": "Output",
 	"minecod.terminal.run": "Run",
 	"minecod.terminal.stop": "Stop",
+	"minecod.terminal.inventory": "Inventory",
 	"minecod.terminal.status.idle": "Stopped",
 	"minecod.terminal.status.running": "Running",
 	"minecod.terminal.status.error": "Error"

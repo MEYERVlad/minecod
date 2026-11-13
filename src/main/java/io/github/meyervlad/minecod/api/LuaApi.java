@@ -7,8 +7,12 @@ import java.util.function.Function;
 import io.github.meyervlad.minecod.script.Script;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import org.luaj.vm2.Globals;
+import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.VarArgFunction;
@@ -79,5 +83,25 @@ public abstract class LuaApi {
 	/** A block's id as scripts see it, e.g. {@code minecraft:oak_log}. */
 	public static String id(BlockState state) {
 		return BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+	}
+
+	/** An item's id as scripts see it, e.g. {@code minecraft:iron_pickaxe}. */
+	public static String id(ItemStack stack) {
+		return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+	}
+
+	/**
+	 * The item a script named. {@code minecraft:} may be left out.
+	 *
+	 * @throws LuaError if there is no such item
+	 */
+	protected static Item item(String id) {
+		Identifier key = Identifier.tryParse(id);
+
+		if (key == null || !BuiltInRegistries.ITEM.containsKey(key)) {
+			throw new LuaError("no such item: " + id);
+		}
+
+		return BuiltInRegistries.ITEM.getValue(key);
 	}
 }

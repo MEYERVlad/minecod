@@ -22,7 +22,9 @@ public record TerminalActionPayload(BlockPos pos, Action action, String program)
 		RUN,
 		STOP,
 		/** Just send back the current log and status. */
-		REFRESH;
+		REFRESH,
+		/** Switch from the editor to the terminal's inventory. */
+		INVENTORY;
 
 		private static final Action[] VALUES = values();
 
@@ -68,6 +70,10 @@ public record TerminalActionPayload(BlockPos pos, Action action, String program)
 			}
 			case STOP -> terminal.stop();
 			case REFRESH -> { }
+			case INVENTORY -> {
+				player.openMenu(terminal);
+				return;
+			}
 		}
 
 		ServerPlayNetworking.send(player, terminal.state(false));
