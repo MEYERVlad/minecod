@@ -1,6 +1,7 @@
 package io.github.meyervlad.minecod;
 
 import io.github.meyervlad.minecod.command.MinecodCommands;
+import io.github.meyervlad.minecod.notebook.Notebook;
 import io.github.meyervlad.minecod.session.Sessions;
 import io.github.meyervlad.minecod.terminal.Terminal;
 import io.github.meyervlad.minecod.wire.Wire;
@@ -32,6 +33,8 @@ public final class Minecod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		HandMining.init();
+		Programs.init();
+		Notebook.init();
 		Wire.init();
 		Terminal.init();
 

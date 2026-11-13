@@ -14,6 +14,8 @@
 	"minecod.help.help": "this list",
 	"block.minecod.terminal": "Terminal",
 	"block.minecod.wire": "Wire",
+	"item.minecod.notebook": "Notebook",
+	"minecod.notebook.placeholder": "Lua that runs before your chat code. Define functions here, then call them: > tunnel(10)",
 	"minecod.terminal.program": "Program",
 	"minecod.terminal.placeholder": "Lua program. Try: while true do mine() sleep(1) end",
 	"minecod.terminal.output": "Output",

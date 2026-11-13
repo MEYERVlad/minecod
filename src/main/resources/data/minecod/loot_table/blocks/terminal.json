@@ -8,6 +8,13 @@
 			"entries": [
 				{
 					"type": "minecraft:item",
+					"modifier": {
+						"type": "minecraft:copy_components",
+						"include": [
+							"minecod:program"
+						],
+						"source": "block_entity"
+					},
 					"name": "minecod:terminal"
 				}
 			],

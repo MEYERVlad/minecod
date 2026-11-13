@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import io.github.meyervlad.minecod.Programs;
 import io.github.meyervlad.minecod.script.LuaSandbox;
 import io.github.meyervlad.minecod.script.Script;
 import io.github.meyervlad.minecod.wire.WireBlock;
@@ -12,6 +13,8 @@ import io.github.meyervlad.minecod.wire.WireNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
@@ -43,8 +46,7 @@ import org.luaj.vm2.LuaValue;
  * running starts its program again from the first line.
  */
 public final class TerminalBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
-	/** In characters. Small enough to fit one network packet even as three-byte UTF-8. */
-	public static final int MAX_PROGRAM_LENGTH = 8_000;
+	public static final int MAX_PROGRAM_LENGTH = Programs.MAX_LENGTH;
 	public static final int MAX_LOG_LINES = 50;
 	public static final int MAX_LINE_LENGTH = 200;
 	/** Marks a log line as an error. */
@@ -82,7 +84,7 @@ public final class TerminalBlockEntity extends BaseContainerBlockEntity implemen
 
 	/** Stores a program. A program that is already running is not affected until {@link #run()}. */
 	public void setProgram(String program) {
-		String clipped = program.length() <= MAX_PROGRAM_LENGTH ? program : program.substring(0, MAX_PROGRAM_LENGTH);
+		String clipped = Programs.clip(program);
 
 		if (!clipped.equals(this.program)) {
 			this.program = clipped;
@@ -437,6 +439,28 @@ public final class TerminalBlockEntity extends BaseContainerBlockEntity implemen
 	}
 
 	// ---------------------------------------------------------------- saving
+
+	/** A terminal that is mined keeps its program on the item, and gets it back when placed. */
+	@Override
+	protected void collectImplicitComponents(DataComponentMap.Builder components) {
+		super.collectImplicitComponents(components);
+
+		if (!program.isEmpty()) {
+			components.set(Programs.COMPONENT, program);
+		}
+	}
+
+	@Override
+	protected void applyImplicitComponents(DataComponentGetter components) {
+		super.applyImplicitComponents(components);
+		program = components.getOrDefault(Programs.COMPONENT, "");
+	}
+
+	@Override
+	public void removeComponentsFromTag(ValueOutput output) {
+		super.removeComponentsFromTag(output);
+		output.discard("program");
+	}
 
 	@Override
 	protected void saveAdditional(ValueOutput output) {

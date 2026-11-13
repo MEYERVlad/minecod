@@ -3,6 +3,7 @@ package io.github.meyervlad.minecod.gametest;
 import java.util.List;
 
 import io.github.meyervlad.minecod.Minecod;
+import io.github.meyervlad.minecod.Programs;
 import io.github.meyervlad.minecod.script.Script;
 import io.github.meyervlad.minecod.terminal.Terminal;
 import io.github.meyervlad.minecod.terminal.TerminalBlock;
@@ -21,6 +22,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -380,6 +382,27 @@ public class TerminalGameTests {
 			terminal.stop();
 			helper.succeed();
 		});
+	}
+
+	@GameTest(maxTicks = 100)
+	public void aMinedTerminalKeepsItsProgramOnTheItem(GameTestHelper helper) {
+		String program = "print('still here')";
+		TerminalBlockEntity terminal = place(helper, TERMINAL, program);
+
+		List<ItemStack> drops = Block.getDrops(terminal.getBlockState(), helper.getLevel(), terminal.getBlockPos(), terminal);
+		helper.assertTrue(drops.size() == 1 && drops.getFirst().is(Terminal.ITEM), "a terminal drops " + drops);
+		ItemStack item = drops.getFirst();
+		helper.assertTrue(program.equals(item.get(Programs.COMPONENT)), "the item carries " + item.get(Programs.COMPONENT));
+
+		// Placed again, by a player, it has the program back.
+		BlockPos elsewhere = new BlockPos(5, 2, 5);
+		ServerPlayer player = MinecodGameTests.spawnPlayer(helper);
+		player.setItemInHand(InteractionHand.MAIN_HAND, item);
+		helper.placeAt(player, item, elsewhere.below(), Direction.UP);
+		TerminalBlockEntity placed = helper.getBlockEntity(elsewhere, TerminalBlockEntity.class);
+		helper.assertTrue(placed.program().equals(program), "the placed terminal holds: " + placed.program());
+		MinecodGameTests.removePlayer(helper, player);
+		helper.succeed();
 	}
 
 	@GameTest(maxTicks = 100)

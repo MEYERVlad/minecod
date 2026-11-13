@@ -14,6 +14,8 @@
 	"minecod.help.help": "этот список",
 	"block.minecod.terminal": "Терминал",
 	"block.minecod.wire": "Провод",
+	"item.minecod.notebook": "Блокнот",
+	"minecod.notebook.placeholder": "Lua, который выполняется перед кодом из чата. Опиши здесь функции и вызывай их: > tunnel(10)",
 	"minecod.terminal.program": "Программа",
 	"minecod.terminal.placeholder": "Программа на Lua. Попробуй: while true do mine() sleep(1) end",
 	"minecod.terminal.output": "Вывод",

@@ -1,5 +1,7 @@
 package io.github.meyervlad.minecod.client;
 
+import io.github.meyervlad.minecod.Programs;
+import io.github.meyervlad.minecod.notebook.OpenNotebookPayload;
 import io.github.meyervlad.minecod.terminal.Terminal;
 import io.github.meyervlad.minecod.terminal.TerminalStatePayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -11,6 +13,11 @@ public final class MinecodClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		MenuScreens.register(Terminal.MENU, TerminalInventoryScreen::new);
+
+		ClientPlayNetworking.registerGlobalReceiver(OpenNotebookPayload.TYPE, (payload, context) -> {
+			String program = context.player().getItemInHand(payload.hand()).getOrDefault(Programs.COMPONENT, "");
+			context.client().gui.setScreen(new NotebookScreen(payload.hand(), program));
+		});
 
 		ClientPlayNetworking.registerGlobalReceiver(TerminalStatePayload.TYPE, (payload, context) -> {
 			if (payload.openScreen()) {

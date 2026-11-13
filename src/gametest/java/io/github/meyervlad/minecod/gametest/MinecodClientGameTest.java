@@ -3,6 +3,8 @@ package io.github.meyervlad.minecod.gametest;
 import java.util.List;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import io.github.meyervlad.minecod.Programs;
+import io.github.meyervlad.minecod.client.NotebookScreen;
 import io.github.meyervlad.minecod.client.TerminalInventoryScreen;
 import io.github.meyervlad.minecod.client.TerminalScreen;
 import io.github.meyervlad.minecod.terminal.TerminalBlock;
@@ -70,6 +72,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 			context.waitTicks(10);
 			context.takeScreenshot("3-chat-output");
 
+			testNotebook(context, world);
 			testTerminal(context, world);
 			testWires(context, world);
 
@@ -81,6 +84,38 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 			context.getInput().holdMouseFor(InputConstants.MOUSE_BUTTON_LEFT, PUNCH_TICKS);
 			check(targetIsAir(server), "the block did not break by hand with minecod:hand_mining on");
 		}
+	}
+
+	/** Writes a function into a notebook and calls it from chat. */
+	private static void testNotebook(ClientGameTestContext context, TestSingleplayerContext world) {
+		TestServerContext server = world.getServer();
+		String program = "function dig() return mine() end";
+		server.runCommand("item replace entity @a weapon.mainhand with minecod:notebook");
+		context.waitTicks(5);
+
+		// Using the notebook opens it; closing it saves the text onto the item.
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+		context.waitForScreen(NotebookScreen.class);
+		context.getInput().typeChars(program);
+		context.waitTicks(2);
+		context.takeScreenshot("4-notebook");
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitForScreen(null);
+		server.waitFor(s -> program.equals(s.getPlayerList().getPlayers().getFirst().getMainHandItem().get(Programs.COMPONENT)));
+
+		// Reopening shows what was saved.
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+		context.waitForScreen(NotebookScreen.class);
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitForScreen(null);
+		check(server.computeOnServer(s -> program.equals(s.getPlayerList().getPlayers().getFirst().getMainHandItem().get(Programs.COMPONENT))),
+				"reopening the notebook changed its text");
+
+		// The function is now there for chat code.
+		placeTarget(server);
+		typeInChat(context, "> dig()");
+		server.waitFor(s -> s.overworld().getBlockState(TARGET).isAir());
+		server.runCommand("clear @a minecod:notebook");
 	}
 
 	/** Opens a terminal with a right click, types a program, runs it and watches it mine. */
@@ -95,7 +130,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		server.runCommand("setblock " + coordinates(TERMINAL) + " minecod:terminal[facing=north]");
 		server.runCommand("tp @a 0.5 100 0.5 0 37");
 		context.waitTicks(10);
-		context.takeScreenshot("4-terminal-in-the-world");
+		context.takeScreenshot("5-terminal-in-the-world");
 
 		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
 		context.waitForScreen(TerminalScreen.class);
@@ -123,7 +158,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		server.waitFor(s -> s.overworld().getBlockState(TERMINAL.north()).isAir());
 		server.waitFor(s -> terminal(s).logLines().contains("mined"));
 		context.waitTicks(15);
-		context.takeScreenshot("5-terminal-editor");
+		context.takeScreenshot("6-terminal-editor");
 
 		// Closing keeps the program running.
 		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
@@ -132,7 +167,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		check(terminal(server).isRunning(), "closing the screen stopped the program");
 		check(context.computeOnClient(client -> client.level.getBlockState(TERMINAL).getValue(TerminalBlock.STATUS)) == TerminalStatus.RUNNING,
 				"the client does not see the terminal as running");
-		context.takeScreenshot("6-terminal-running");
+		context.takeScreenshot("7-terminal-running");
 
 		// The editor's Inventory button leads to the slots, and what the terminal mined is there.
 		server.runOnServer(s -> terminal(s).setItem(TerminalBlockEntity.TOOL_SLOT, new ItemStack(Items.IRON_PICKAXE)));
@@ -143,7 +178,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		context.waitTicks(5);
 		check(context.computeOnClient(client -> ((TerminalInventoryScreen) client.gui.screen()).getMenu().getSlot(1).getItem().is(Items.DIRT)),
 				"the inventory screen does not show the mined dirt");
-		context.takeScreenshot("7-terminal-inventory");
+		context.takeScreenshot("8-terminal-inventory");
 		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
 		context.waitForScreen(null);
 
@@ -183,7 +218,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		server.runCommand("setblock " + coordinates(lamp) + " minecraft:redstone_lamp");
 		server.runCommand("tp @a 1.5 100 -2.5 0 0");
 		context.waitTicks(10);
-		context.takeScreenshot("8-wires-off");
+		context.takeScreenshot("9-wires-off");
 
 		server.runOnServer(s -> {
 			terminal(s).setProgram("emit(15)");
@@ -194,7 +229,7 @@ public class MinecodClientGameTest implements FabricClientGameTest {
 		context.waitTicks(5);
 		check(context.computeOnClient(client -> client.level.getBlockState(wires.get(2)).getValue(WireBlock.POWER)) == 15, "the client does not see the wire as live");
 		check(context.computeOnClient(client -> client.level.getBlockState(lamp).getValue(RedstoneLampBlock.LIT)), "the client does not see the lamp lit");
-		context.takeScreenshot("9-wires-on");
+		context.takeScreenshot("10-wires-on");
 
 		server.runOnServer(s -> terminal(s).stop());
 		wires.forEach(wire -> server.runCommand("setblock " + coordinates(wire) + " minecraft:air"));
